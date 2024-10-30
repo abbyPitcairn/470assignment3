@@ -13,6 +13,7 @@ import os
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["WANDB_DISABLED"] = "true"
 
+# returns a dict mapping topic IDs to a nested dict of ans IDs and their score
 def read_qrel_file(file_path):
     # Reading the qrel file
     dic_topic_id_answer_id_relevance = {}
@@ -29,6 +30,7 @@ def read_qrel_file(file_path):
     return dic_topic_id_answer_id_relevance
 
 
+# returns dict mapping IDs to their title, body, and tags
 def load_topic_file(topic_filepath):
     # a method used to read the topic file for this year of the lab;
     # to be passed to BERT/PyTerrier methods
