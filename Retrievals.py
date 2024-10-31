@@ -115,6 +115,9 @@ def cross_retrieval(model, queries, docs, result_file, system_name="my_cross_enc
 
     input_pairs = [] # this will hold input pairs for the cross-encoder
 
+    # compute the embeddings
+    embedded_docs = embed(docs, model)
+
     for line in lines:
         parts = line.strip().split()
         if len(parts) < 4: # each line in the result file should have at least 4 parts (query id, q0, doc id, and rank)
@@ -124,10 +127,10 @@ def cross_retrieval(model, queries, docs, result_file, system_name="my_cross_enc
         doc_id = parts[2]
 
         query_text = queries.get(topic_id, None)
-        doc_text = docs.get(doc_id, None)
+        doc_embedding = embedded_docs.get(doc_id, None)
 
-        if query_text and doc_text:
-            input_pairs.append((topic_id, doc_id, query_text, doc_text))
+        if query_text and doc_embedding is not None:
+            input_pairs.append((topic_id, doc_id, query_text, doc_embedding))
 
     if input_pairs:
         scores = model.predict([pair[2:] for pair in input_pairs]) # getting sim scores
