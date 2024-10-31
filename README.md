@@ -13,8 +13,9 @@ Models' documentation: https://sbert.net/docs/sentence_transformer/pretrained_mo
 
 
 ### Command Line
-Running Main.py takes two inputs: Answers.json and topics_1.json or topics_2.json.
-Example command: python3 Main.py Answers.json topics_1.json
+Running Main.py takes three inputs: Answers.json and topics_1.json and topics_2.json.
+Example command: python3 Main.py Answers.json topics_1.json topics_2.json
+All eight result files can be generated from this command.
 
 ### Results
 
