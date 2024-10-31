@@ -3,6 +3,7 @@
 from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, losses, evaluation
 from torch.utils.data import DataLoader
 from itertools import islice
+from Retrievals import clean_text
 import json
 import torch
 import math
@@ -13,6 +14,7 @@ import os
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 os.environ["WANDB_DISABLED"] = "true"
 
+# returns a dict mapping topic IDs to a nested dict of ans IDs and their score
 def read_qrel_file(file_path):
     # Reading the qrel file
     dic_topic_id_answer_id_relevance = {}
@@ -29,17 +31,18 @@ def read_qrel_file(file_path):
     return dic_topic_id_answer_id_relevance
 
 
+# returns dict mapping IDs to their title, body, and tags
 def load_topic_file(topic_filepath):
     # a method used to read the topic file for this year of the lab;
     # to be passed to BERT/PyTerrier methods
     queries = json.load(open(topic_filepath))
     result = {}
     for item in queries:
-      # You may do additional preprocessing here
+      # Using my clean_text method that can be found in Retrievals.py
+      title = clean_text(item["title"])
+      body = clean_text(item["body"])
+      tags = clean_text(item["tags"])
       # returning results as dictionary of topic id: [title, body, tag]
-      title = item['Title'].translate(str.maketrans('', '', string.punctuation))
-      body = item['Body'].translate(str.maketrans('', '', string.punctuation))
-      tags = item['Tags']
       result[item['Id']] = [title, body, tags]
     return result
 
@@ -129,7 +132,7 @@ def train(model):
     batch_size = 16
 
     # Rename this when training the model and keep track of results
-    MODEL = "SAVED_MODEL_NAME"
+    MODEL = "SAVED_MODEL_NAME" # this is the model that will be used in fine-tuning the bi encoder, passed through the retrieval method
 
     # Creating train and val dataset
     train_samples, evaluator_samples_1, evaluator_samples_2, evaluator_samples_score = process_data(queries, train_dic_qrel, val_dic_qrel, collection_dic)
