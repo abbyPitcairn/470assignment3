@@ -36,13 +36,12 @@ def main(topics, answers):
             queries_2 = json.load(f)
 
     # load each pretrained model
-    pretrained_bi_model = SentenceTransformer('sentence-transformers/multi-qa-distilbert-cos-v1')
-    pretrained_cross_model = CrossEncoder('cross-encoder/stsb-distilroberta-base'
-                                          )
-    # train model and get MODEL
-    model_path = BiEncoder.train(pretrained_bi_model)
-    # model_path = need one for cross encoder but not coded in functions, fix first
-    ft_bi_encoder_model = SentenceTransformer(model_path)
+    pretrained_bi_model = SentenceTransformer('multi-qa-distilbert-cos-v1')
+    pretrained_cross_model = CrossEncoder('stsb-distilroberta-base')
+
+    # new objects for referencing the fine-tuned models
+    ft_bi_encoder_model = BiEncoder.train(SentenceTransformer('multi-qa-distilbert-cos-v1'))
+    ft_cross_encoder_model = CrossEncoder('stsb-distilroberta-base')
 
     # Call retrieval methods and output result files
     # 1. No fine-tuning on test set: bi-encoder
