@@ -3,7 +3,7 @@
 from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, losses, evaluation
 from torch.utils.data import DataLoader
 from itertools import islice
-from Retrievals import clean_text
+import Retrievals
 import json
 import torch
 import math
@@ -39,9 +39,9 @@ def load_topic_file(topic_filepath):
     result = {}
     for item in queries:
       # Using my clean_text method that can be found in Retrievals.py
-      title = clean_text(item["title"])
-      body = clean_text(item["body"])
-      tags = clean_text(item["tags"])
+      title = Retrievals.clean_text(item["title"])
+      body = Retrievals.clean_text(item["body"])
+      tags = Retrievals.clean_text(item["tags"])
       # returning results as dictionary of topic id: [title, body, tag]
       result[item['Id']] = [title, body, tags]
     return result
@@ -102,7 +102,7 @@ def shuffle_dict(d):
     return {key: d[key] for key in keys}
 
 
-def split_train_validation(qrels, ratio=0.9):
+def split_train_validation(qrels, ratio=0.8): #changed to 80% for training 10% for validation and 10% for testing
     # Using items() + len() + list slicing
     # Split dictionary by half
     n = len(qrels)
@@ -115,8 +115,7 @@ def split_train_validation(qrels, ratio=0.9):
 
 
 def train(model):
-
-    ## reading queries and collection
+    # reading queries and collection
     dic_topics = load_topic_file("topics_1.json")
     queries = {}
     for query_id in dic_topics:
@@ -156,6 +155,7 @@ def train(model):
         output_path=MODEL
     )
 
+# initializing model
 model = SentenceTransformer('all-MiniLM-L6-v2')
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
