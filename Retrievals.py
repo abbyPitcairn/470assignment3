@@ -68,8 +68,8 @@ def embed(docs, model):
 # Model: the model to use for embedding and calculating similarities
 # Queries: the topic file
 # Docs: the answers file
-# Calling bi_retrieve DOES NOT RETURN ANYTHING: it automatically saves results to output_filepath
-def bi_retrieve(model, topic_filepath, docs_filepath, output_filepath):
+# Calling bi_retrieve returns ordered results 
+def bi_retrieve(model, topic_filepath, docs_filepath):
     # Retrieve documents relevant to queries using bi-encoder
     print("Starting bi-retrieve method...")
 
@@ -111,8 +111,7 @@ def bi_retrieve(model, topic_filepath, docs_filepath, output_filepath):
                 simqd = model.similarity(query_embedding, embedded_doc)
                 similarities[doc_id] = simqd  # Store similarity with document ID
 
-    save_to_result_file({k: v for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True)},
-                        output_filepath)
+    return {k: v for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True)}
 
 
 """
