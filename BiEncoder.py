@@ -143,8 +143,7 @@ def train(model):
     num_epochs = 100
     batch_size = 16
 
-    # Rename this when training the model and keep track of results
-    MODEL = "bi_encoder_finetuned_model" # this is the model that will be used in fine-tuning the bi encoder, passed through the retrieval method
+    model_save_path ="./ft_bi_2024" # we don't need MODEL, that's just a string. This is similar to the process in CrossEncoder where we are saving the fine-tuned model to a folder in the current directory
 
     # Creating train and val dataset
     train_samples, evaluator_samples_1, evaluator_samples_2, evaluator_samples_score = process_data(queries, train_dic_qrel, val_dic_qrel, collection_dic)
@@ -163,15 +162,15 @@ def train(model):
         epochs=num_epochs,
         warmup_steps=warmup_steps,
         use_amp=True,
+        output_path=model_save_path,
         save_best_model=True,
-        show_progress_bar=True,
-        output_path=MODEL
+        show_progress_bar=True
     )
-    return MODEL # return path
+    model.save(model_save_path)
 
 # initializing model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# model = SentenceTransformer('all-MiniLM-L6-v2')
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # print(device)
 # model.to(device)
-train(model)
+# train(model)
