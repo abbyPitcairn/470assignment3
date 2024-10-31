@@ -51,10 +51,8 @@ def remove_stop_words(text):
     return ' '.join(filtered_words)
 
 
-# Behrooz said to improve speed, embed all documents and save them as a
-# dictionary of "doc_id: vector" so we don't embed them repeatedly.
-# Implemented below:
 # Embed the documents in a collection and return a dictionary
+# This way documents don't need to be embedded every time
 # Keys: doc_ids
 # Values: embedded value
 def embed(docs, model):
@@ -95,19 +93,53 @@ def bi_retrieve(model, topic_filepath, docs_filepath):
     return {k: v for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True)}
 
 
-'''
-The following creates the cross encoder retrieval method
-'''
-def cross_retrieval(model, queries, docs, result_file):
-    # input: 1 input sequence query[SEP]doc
-    # will be
-    # set queries to topics file
-    # set docs to answers file
-    # cross encoder only takes 1 input sequence and will output a value between [0,1] indicating the similarity of the input sentence pair
-    # combine the query from result file to the top 100 docs returned
-    # rerank
-    result = ""
-    return result
+"""
+Rerank query document pairs using a cross-encoder based on a result file from the bi-encoder.
+Parameters:
+    model: The cross-encoder model for reranking.
+    queries: A dictionary mapping query IDs to their corresponding queries.
+    docs: A dictionary mapping document IDs to their corresponding text.
+    result_file: The path to the file containing the bi-encoder retrieval results.
+    system_name: The name of the system to include in the output.
+    top_k: The number of top results to return.
+        
+Returns:
+   Results are written to a file.
+"""
+def cross_retrieval(model, queries, docs, result_file, system_name="my_cross_encoder_model", top_k=100):
+    reranked_results = []
+
+    # read from bi-encoder output file
+    with open(result_file, 'r') as file:
+        lines = file.readlines()
+
+    input_pairs = [] # this will hold input pairs for the cross-encoder
+
+    for line in lines:
+        parts = line.strip().split()
+        if len(parts) < 4: # each line in the result file should have at least 4 parts (query id, q0, doc id, and rank)
+            continue # skipping if it doesn't = something is wrong with the way the file was written
+
+        topic_id = parts[0]
+        doc_id = parts[2]
+
+        query_text = queries.get(topic_id, None)
+        doc_text = docs.get(doc_id, None)
+
+        if query_text and doc_text:
+            input_pairs.append((topic_id, doc_id, query_text, doc_text))
+
+    if input_pairs:
+        scores = model.predict([pair[2:] for pair in input_pairs]) # getting sim scores
+
+        reranked_results = [(input_pairs[i][0], input_pairs[i][1], scores[i]) for i in range(len(input_pairs))]
+#[(input_pairs[i][0], input_pairs[i][1], scores[i] for i in range(len(input_pairs)))] # combine scores w their query doc pair
+
+    reranked_results.sort(key=lambda x: x[2], reverse=True) # ranking in descending order
+
+    with open("result_ce_file", "w") as output_file: # have to rename file after!!!!
+        for rank, (query_id, doc_id, score) in enumerate(reranked_results[:top_k], start=1): # technically top_k isn't needed bc the bi-encoder output file should only have 100 top results, doing just in case
+            output_file.write(f"{query_id} Q0 {doc_id} {rank} {score:.6f} {system_name}\n")
 
 
 # Write the input results to an output file with columns for:

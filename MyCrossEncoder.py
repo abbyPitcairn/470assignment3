@@ -13,6 +13,43 @@ import BiEncoder
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def __init__(self, model_name):
+    self.model_name = model_name
+    self.model = CrossEncoder(model_name)
+
+
+def finetune(model_name, train_samples, valid_samples):
+    # Learn how to use GPU with this!
+    model = CrossEncoder(model_name)
+
+    print("Cross encoder initialized.")
+
+    # Adding special tokens
+    tokens = ["[TITLE]", "[BODY]"]
+    model.tokenizer.add_tokens(tokens, special_tokens=True)
+    model.model.resize_token_embeddings(len(model.tokenizer), mean_resizing=False)
+    # model.to(device)
+    print("Tokenizer initialized")
+
+    # this sets up the training
+    num_epochs = 100
+    model_save_path = "./ft_cr_2024"  # remember this for fine-tuning!!!
+    train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=4)
+    print("Dataloader loading training")
+    # During training, we use CESoftmaxAccuracyEvaluator to measure the accuracy on the dev set.
+    evaluator = CERerankingEvaluator(valid_samples, name='train-eval')
+    warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
+    train_loss = losses.MultipleNegativesRankingLoss(model=model)
+    model.fit(train_dataloader=train_dataloader,
+              evaluator=evaluator,
+              epochs=num_epochs,
+              warmup_steps=warmup_steps,
+              output_path=model_save_path,
+              save_best_model=True)
+
+    model.save(model_save_path)
+
+
 def read_qrel_file(qrel_filepath):
     # a method used to read the topic file
     result = {}
@@ -49,7 +86,7 @@ collection_dic = read_collection('Answers.json')
 
 ## Preparing pairs of training instances
 num_topics = len(queries.keys())
-number_training_samples = int(num_topics*0.9)
+number_training_samples = int(num_topics*0.8) # changed to use 80% for training
 
 
 ## Preparing the content
@@ -84,33 +121,6 @@ for qid in qrel:
 
 print("Training and validation set prepared")
 
-# selecting cross-encoder
-model_name = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-# Learn how to use GPU with this!
-model = CrossEncoder(model_name, device=device)
-
-print("Cross encoder initialized.")
-
-# Adding special tokens
-tokens = ["[TITLE]", "[BODY]"]
-model.tokenizer.add_tokens(tokens, special_tokens=True)
-model.model.resize_token_embeddings(len(model.tokenizer), mean_resizing = False)
-#model.to(device)
-print("Tokenizer initialized")
-
-num_epochs = 100
-model_save_path = "./ft_cr_2024"
-train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=4)
-print("Dataloader loading training")
-# During training, we use CESoftmaxAccuracyEvaluator to measure the accuracy on the dev set.
-evaluator = CERerankingEvaluator(valid_samples, name='train-eval')
-warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-train_loss = losses.MultipleNegativesRankingLoss(model=model)
-model.fit(train_dataloader=train_dataloader,
-          evaluator=evaluator,
-          epochs=num_epochs,
-          warmup_steps=warmup_steps,
-          output_path=model_save_path,
-          save_best_model=True)
-
-model.save(model_save_path)
+# selecting cross-encoder AKA initializing the model
+# using this model because it works well for finding semantic textual similarity
+model_name = "cross-encoder/stsb-distilroberta-base"
