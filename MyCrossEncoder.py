@@ -10,7 +10,44 @@ from torch.utils.data import DataLoader
 import BiEncoder
 
 # Change processing to GPU instead of CPU
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def __init__(self, model_name):
+    self.model_name = model_name
+    self.model = CrossEncoder(model_name)
+
+
+def finetune(model_name, train_samples, valid_samples):
+    # Learn how to use GPU with this!
+    model = CrossEncoder(model_name)
+
+    print("Cross encoder initialized.")
+
+    # Adding special tokens
+    tokens = ["[TITLE]", "[BODY]"]
+    model.tokenizer.add_tokens(tokens, special_tokens=True)
+    model.model.resize_token_embeddings(len(model.tokenizer), mean_resizing=False)
+    # model.to(device)
+    print("Tokenizer initialized")
+
+    # this sets up the training
+    num_epochs = 100
+    model_save_path = "./ft_cr_2024"  # remember this for fine-tuning!!!
+    train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=4)
+    print("Dataloader loading training")
+    # During training, we use CESoftmaxAccuracyEvaluator to measure the accuracy on the dev set.
+    evaluator = CERerankingEvaluator(valid_samples, name='train-eval')
+    warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
+    train_loss = losses.MultipleNegativesRankingLoss(model=model)
+    model.fit(train_dataloader=train_dataloader,
+              evaluator=evaluator,
+              epochs=num_epochs,
+              warmup_steps=warmup_steps,
+              output_path=model_save_path,
+              save_best_model=True)
+
+    model.save(model_save_path)
 
 
 def read_qrel_file(qrel_filepath):
@@ -85,33 +122,5 @@ for qid in qrel:
 print("Training and validation set prepared")
 
 # selecting cross-encoder AKA initializing the model
-model_name = "cross-encoder/stsb-distilroberta-base" # using this model because it works well for finding semantic textual similarity
-# Learn how to use GPU with this!
-model = CrossEncoder(model_name)
-
-print("Cross encoder initialized.")
-
-# Adding special tokens
-tokens = ["[TITLE]", "[BODY]"]
-model.tokenizer.add_tokens(tokens, special_tokens=True)
-model.model.resize_token_embeddings(len(model.tokenizer), mean_resizing = False)
-#model.to(device)
-print("Tokenizer initialized")
-
-# this sets up the training
-num_epochs = 100
-model_save_path = "./ft_cr_2024" # remember this for fine-tuning!!!
-train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=4)
-print("Dataloader loading training")
-# During training, we use CESoftmaxAccuracyEvaluator to measure the accuracy on the dev set.
-evaluator = CERerankingEvaluator(valid_samples, name='train-eval')
-warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
-train_loss = losses.MultipleNegativesRankingLoss(model=model)
-model.fit(train_dataloader=train_dataloader,
-          evaluator=evaluator,
-          epochs=num_epochs,
-          warmup_steps=warmup_steps,
-          output_path=model_save_path,
-          save_best_model=True)
-
-model.save(model_save_path)
+# using this model because it works well for finding semantic textual similarity
+model_name = "cross-encoder/stsb-distilroberta-base"

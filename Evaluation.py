@@ -1,10 +1,11 @@
-from ranx import Qrels, Run, evaluate
-import matplotlib.pyplot as plt
-
 # Using ranx software, calculate P@1, P@5, nDCG@5, MRR, and MAP
 # Produce a ski jump plot for a given input file based on P@5
 # Return the highest-scoring and lowest-scoring query-document pairs
 # Must MANUALLY ENTER the file name to evaluate
+# Version 31.10.2024
+
+from ranx import Qrels, Run, evaluate
+import matplotlib.pyplot as plt
 
 # Specify files
 qrel = Qrels.from_file("qrel_1.tsv", kind="trec")
