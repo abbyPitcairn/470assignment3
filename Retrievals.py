@@ -68,29 +68,51 @@ def embed(docs, model):
 # Model: the model to use for embedding and calculating similarities
 # Queries: the topic file
 # Docs: the answers file
-def bi_retrieve(model, topic_filepath, docs_filepath):
-    print("Starting bi-retrieval method...")
+# Calling bi_retrieve DOES NOT RETURN ANYTHING: it automatically saves results to output_filepath
+def bi_retrieve(model, topic_filepath, docs_filepath, output_filepath):
+    # Retrieve documents relevant to queries using bi-encoder
+    print("Starting bi-retrieve method...")
+
     # Initialize dictionary to store results
     result = {}
-    queries = json.load(open(topic_filepath))
-    docs = json.load(open(docs_filepath))
+
+    # Load queries and documents from provided file paths
+    with open(topic_filepath, 'r') as f:
+        queries = json.load(f)
+    with open(docs_filepath, 'r') as f:
+        docs = json.load(f)
+
+    # Check if `docs` is a list of dictionaries; if not, print a warning
+    if not isinstance(docs, list) or not all(isinstance(doc, dict) for doc in docs):
+        print("Error: `docs` is not a list of dictionaries. Please check the structure of the answers file.")
+        return
+
+    # Get embedded documents dictionary
     embedded_docs = embed(docs, model)
 
     # Cycle through queries
-    for q in queries:
-        q_id = q['Id']
-        q_text = q['Title'] + " " + q['Body']
-        q = model.encode(q_text)  # Embed current query
+    for query in queries:
+        query_id = query.get('Id', None)
+        query_title = query.get('Title', '')
+        query_body = query.get('Body', '')
+        query_text = f"{query_title} {query_body}".strip()
 
-        # Search current query over documents
-        for doc in embedded_docs:
-            doc_id = doc['Id']
-            # Calculate similarity for query and document
-            simqd = model.similarity(q,doc)
-            result[embedded_docs[doc]] = simqd
-            result[q_id][doc_id] = simqd
+        # Check if query ID and text are valid before proceeding
+        if query_id and query_text:
+            query_embedding = model.encode(query_text)  # Encode the current query
+            # Search current query over documents
 
-    return {k: v for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True)}
+            # Initialize a dictionary to store similarities for the current query
+            similarities = {}
+
+            # Search current query over documents
+            for doc_id, embedded_doc in embedded_docs.items():
+                # Calculate similarity for query and document
+                simqd = model.similarity(query_embedding, embedded_doc)
+                similarities[doc_id] = simqd  # Store similarity with document ID
+
+    save_to_result_file({k: v for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True)},
+                        output_filepath)
 
 
 """
