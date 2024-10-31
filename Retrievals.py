@@ -161,17 +161,3 @@ def cross_retrieval(model, queries, docs, result_file, system_name="my_cross_enc
     with open("result_ce_file", "w") as output_file: # have to rename file after!!!!
         for rank, (query_id, doc_id, score) in enumerate(reranked_results[:top_k], start=1): # technically top_k isn't needed bc the bi-encoder output file should only have 100 top results, doing just in case
             output_file.write(f"{query_id} Q0 {doc_id} {rank} {score:.6f} {system_name}\n")
-
-
-# Write the input results to an output file with columns for:
-# query_id, 0, doc_id, rank, result for doc_id, name of run
-def save_to_result_file(results, output_file):
-    with open(output_file, 'w') as f:
-        for query_id in results:
-            dic_result = results[query_id]
-            rank = 1  # Initialize rank to 1
-            for doc_id in dic_result:
-                f.write(f"{query_id} 0 {doc_id} {rank} {dic_result[doc_id]} Run1\n")
-                rank += 1  # Increment the rank for each document returned
-                if rank > total_return_documents:  # Only return the top 100 results from search
-                    break
