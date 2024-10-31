@@ -102,16 +102,21 @@ def shuffle_dict(d):
     return {key: d[key] for key in keys}
 
 
-def split_train_validation(qrels, ratio=0.8): #changed to 80% for training 10% for validation and 10% for testing
-    # Using items() + len() + list slicing
-    # Split dictionary by half
+def split_data(qrels, train_ratio=0.8, val_ratio=0.1): #changed to 80% for training 10% for validation and 10% for testing
+    # making sure test set is created as well
     n = len(qrels)
-    n_split = int(n * ratio)
-    qrels = shuffle_dict(qrels)
-    train = dict(islice(qrels.items(), n_split))
-    validation = dict(islice(qrels.items(), n_split, None))
+    n_train = int(n * train_ratio)
+    n_val = int(n * val_ratio)
 
-    return train, validation
+    # shuffle
+    qrels = shuffle_dict(qrels)
+
+    # the split
+    train = dict(islice(qrels.items(), n_train))
+    validation = dict(islice(qrels.items(), n_train, n_train + n_val))
+    test = dict(islice(qrels.items(), n_train + n_val, None))
+
+    return train, validation, test
 
 
 def train(model):
@@ -122,8 +127,16 @@ def train(model):
         queries[query_id] = "[TITLE]" + dic_topics[query_id][0] + "[BODY]" + dic_topics[query_id][1]
     qrel = read_qrel_file("qrel_1.tsv")
     collection_dic = read_collection('Answers.json')
-    train_dic_qrel, val_dic_qrel = split_train_validation(qrel)
+    train_dic_qrel, val_dic_qrel, test_dic_qrel = split_data(qrel) # created the test set but it is never called in this file
 
+    with open('train_qrel.json', 'w') as f: # will use these in CrossEncoder, so the models are trained and validated on the same set of topics
+        json.dump(train_dic_qrel, f)
+
+    with open('val_qrel.json', 'w') as f: # will use these in CrossEncoder, so the models are trained and validated on the same set of topics
+        json.dump(val_dic_qrel, f)
+
+    with open('test_qrel.json', 'w') as f: # saving this specific test set to use in Main.py, so each result file will be produced from the same test set topics
+        json.dump(test_dic_qrel, f)
     # print(train_dic_qrel)
     # print(val_dic_qrel)
 
@@ -131,7 +144,7 @@ def train(model):
     batch_size = 16
 
     # Rename this when training the model and keep track of results
-    MODEL = "SAVED_MODEL_NAME" # this is the model that will be used in fine-tuning the bi encoder, passed through the retrieval method
+    MODEL = "bi_encoder_finetuned_model" # this is the model that will be used in fine-tuning the bi encoder, passed through the retrieval method
 
     # Creating train and val dataset
     train_samples, evaluator_samples_1, evaluator_samples_2, evaluator_samples_score = process_data(queries, train_dic_qrel, val_dic_qrel, collection_dic)
@@ -154,10 +167,11 @@ def train(model):
         show_progress_bar=True,
         output_path=MODEL
     )
+    return MODEL # return path
 
 # initializing model
 model = SentenceTransformer('all-MiniLM-L6-v2')
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device)
-model.to(device)
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# print(device)
+# model.to(device)
 train(model)
