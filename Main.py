@@ -1,4 +1,6 @@
 # Run the retrieval methods to get the results files.
+# Version 31.10.2024
+
 import sys
 import time
 import Retrievals

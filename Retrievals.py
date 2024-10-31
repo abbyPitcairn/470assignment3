@@ -1,5 +1,6 @@
 # This class contains the retrieval methods to be run using the
 # cross- and bi-encoders.
+# Version 31.10.2024
 import re
 from bs4 import BeautifulSoup
 import torch
