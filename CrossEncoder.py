@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 import BiEncoder
 
 # Change processing to GPU instead of CPU
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def read_qrel_file(qrel_filepath):
@@ -49,7 +49,7 @@ collection_dic = read_collection('Answers.json')
 
 ## Preparing pairs of training instances
 num_topics = len(queries.keys())
-number_training_samples = int(num_topics*0.9)
+number_training_samples = int(num_topics*0.8) # changed to use 80% for training
 
 
 ## Preparing the content
@@ -84,10 +84,10 @@ for qid in qrel:
 
 print("Training and validation set prepared")
 
-# selecting cross-encoder
-model_name = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+# selecting cross-encoder AKA initializing the model
+model_name = "cross-encoder/stsb-distilroberta-base" # using this model because it works well for finding semantic textual similarity
 # Learn how to use GPU with this!
-model = CrossEncoder(model_name, device=device)
+model = CrossEncoder(model_name)
 
 print("Cross encoder initialized.")
 
@@ -98,8 +98,9 @@ model.model.resize_token_embeddings(len(model.tokenizer), mean_resizing = False)
 #model.to(device)
 print("Tokenizer initialized")
 
+# this sets up the training
 num_epochs = 100
-model_save_path = "./ft_cr_2024"
+model_save_path = "./ft_cr_2024" # remember this for fine-tuning!!!
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=4)
 print("Dataloader loading training")
 # During training, we use CESoftmaxAccuracyEvaluator to measure the accuracy on the dev set.
