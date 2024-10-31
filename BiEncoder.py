@@ -7,6 +7,7 @@ import Retrievals
 import json
 import torch
 import math
+import string
 import csv
 import random
 import os
@@ -119,8 +120,7 @@ def split_data(qrels, train_ratio=0.8, val_ratio=0.1):
 
 
 def train(model):
-
-    ## reading queries and collection
+    # reading queries and collection
     dic_topics = load_topic_file("topics_1.json")
     queries = {}
     for query_id in dic_topics:
@@ -145,10 +145,7 @@ def train(model):
     num_epochs = 50 # I overheard some people in class say this helped speed up their searches !
     batch_size = 16
 
-    # Rename this when training the model and keep track of results
-    # this is the model that will be used in fine-tuning the bi encoder,
-    # passed through the retrieval method
-    MODEL = "bi_encoder_finetuned_model"
+    model_save_path ="./ft_bi_2024" # we don't need MODEL, that's just a string. This is similar to the process in CrossEncoder where we are saving the fine-tuned model to a folder in the current directory
 
     # Creating train and val dataset
     train_samples, evaluator_samples_1, evaluator_samples_2, evaluator_samples_score = process_data(queries, train_dic_qrel, val_dic_qrel, collection_dic)
@@ -167,17 +164,15 @@ def train(model):
         epochs=num_epochs,
         warmup_steps=warmup_steps,
         use_amp=True,
+        output_path=model_save_path,
         save_best_model=True,
-        show_progress_bar=True,
-        output_path=MODEL
+        show_progress_bar=True
     )
-
-    return MODEL  # return path
-
+    model.save(model_save_path)
 
 # initializing model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# model = SentenceTransformer('all-MiniLM-L6-v2')
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # print(device)
 # model.to(device)
-train(model)
+# train(model)
