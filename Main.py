@@ -109,18 +109,18 @@ if __name__ == "__main__":
     topics_1_file = sys.argv[2]
     topics_2_file = sys.argv[3]
 
-    # Check if input files exist
-    if not os.path.exists(answers_file):
-        print(f"Error: {answers_file} does not exist.")
-        sys.exit(1)
-
-    if not os.path.exists(topics_1_file):
-        print(f"Error: {topics_1_file} does not exist.")
-        sys.exit(1)
-
-    if not os.path.exists(topics_2_file):
-        print(f"Error: {topics_2_file} does not exist.")
-        sys.exit(1)
+    # # Check if input files exist
+    # if not os.path.exists(answers_file):
+    #     print(f"Error: {answers_file} does not exist.")
+    #     sys.exit(1)
+    #
+    # if not os.path.exists(topics_1_file):
+    #     print(f"Error: {topics_1_file} does not exist.")
+    #     sys.exit(1)
+    #
+    # if not os.path.exists(topics_2_file):
+    #     print(f"Error: {topics_2_file} does not exist.")
+    #     sys.exit(1)
 
     # Call the main function with the file paths
     main(answers_file, topics_1_file, topics_2_file)
