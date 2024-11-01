@@ -3,24 +3,23 @@
 
 import sys
 import time
-
-from ir_datasets.datasets.wikiclir import collection
-
-import Retrievals
-import MyCrossEncoder
-from sentence_transformers import SentenceTransformer, CrossEncoder
+import os
 import json
+from sentence_transformers import SentenceTransformer, CrossEncoder
 import BiEncoder
-from MyCrossEncoder import collection_dic
 
-# we need both topics files to return all results
+# Function to create QREL files
+def create_qrel_files():
+    BiEncoder.create_qrel_files()
+
 def main(answers, topics_1, topics_2):
     print("Starting main...")
 
     # Load each pretrained model
     pretrained_bi_model = SentenceTransformer('multi-qa-distilbert-cos-v1')
-    pretrained_cross_model = CrossEncoder('stsb-distilroberta-base')
+    pretrained_cross_model = CrossEncoder('cross-encoder/stsb-distilroberta-base')
 
+    # Load QREL files after creation
     train_qrel = json.load(open('train_qrel.json'))
     val_qrel = json.load(open('val_qrel.json'))
     collection_dic = BiEncoder.read_collection(answers)
@@ -28,11 +27,9 @@ def main(answers, topics_1, topics_2):
     dic_topics_1 = BiEncoder.load_topic_file(topics_1)
     queries_1 = {qid: "[TITLE]" + text[0] + "[BODY]" + text[1] for qid, text in dic_topics_1.items()}
 
-    # train_samples, valid_samples = MyCrossEncoder.prepare_samples(train_qrel, val_qrel, queries_1, collection_dic)
-
     # New objects for referencing the fine-tuned models
     ft_bi_encoder_model = BiEncoder.train(SentenceTransformer('multi-qa-distilbert-cos-v1'))
-    ft_cross_encoder_model = MyCrossEncoder.finetune(CrossEncoder('stsb-distilroberta-base'), train_qrel, val_qrel)
+    ft_cross_encoder_model = MyCrossEncoder.finetune(CrossEncoder('cross-encoder/stsb-distilroberta-base'), train_qrel, val_qrel)
 
     start_time = time.time()
     queries_2 = {}
@@ -95,14 +92,35 @@ def main(answers, topics_1, topics_2):
 # Terminal Command: python3 Main.py Answers.json topics_1.json
 # OR python3 Main.py Answers.json topics_2.json
 if __name__ == "__main__":
-    # Ensure two arguments are passed (answers.json and topics.json)
+    # Create QREL files before importing MyCrossEncoder
+    create_qrel_files()
+
+    # Import MyCrossEncoder after QREL files are created
+    import MyCrossEncoder
+    import Retrievals
+
+    # Ensure three arguments are passed (answers.json, topics_1.json, topics_2.json)
     if len(sys.argv) != 4:
         print("Usage: python main.py <answers.json> <topics_1.json> <topics_2.json>")
         sys.exit(1)
+
     # Get file paths from command line arguments
     answers_file = sys.argv[1]
     topics_1_file = sys.argv[2]
     topics_2_file = sys.argv[3]
+
+    # Check if input files exist
+    if not os.path.exists(answers_file):
+        print(f"Error: {answers_file} does not exist.")
+        sys.exit(1)
+
+    if not os.path.exists(topics_1_file):
+        print(f"Error: {topics_1_file} does not exist.")
+        sys.exit(1)
+
+    if not os.path.exists(topics_2_file):
+        print(f"Error: {topics_2_file} does not exist.")
+        sys.exit(1)
 
     # Call the main function with the file paths
     main(answers_file, topics_1_file, topics_2_file)
