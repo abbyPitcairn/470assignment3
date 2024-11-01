@@ -12,10 +12,10 @@ import BiEncoder
 # Change processing to GPU instead of CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def finetune(model_name, train_samples, valid_samples):
-    model = CrossEncoder(model_name)
-
-    print("Cross encoder initialized.")
+def finetune(model, train_samples, valid_samples):
+    # model = CrossEncoder(model_name)
+    #
+    # print("Cross encoder initialized.")
 
     # Adding special tokens
     tokens = ["[TITLE]", "[BODY]"]
@@ -105,4 +105,4 @@ print("Training and validation set prepared")
 
 # selecting cross-encoder AKA initializing the model
 # using this model because it works well for finding semantic textual similarity
-model_name = "cross-encoder/stsb-distilroberta-base"
+# model_name = "cross-encoder/stsb-distilroberta-base"
