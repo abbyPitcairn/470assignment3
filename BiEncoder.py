@@ -3,11 +3,11 @@
 from sentence_transformers import SentenceTransformer, SentencesDataset, InputExample, losses, evaluation
 from torch.utils.data import DataLoader
 from itertools import islice
+from datasets import Dataset
 import Retrievals
 import json
 import torch
 import math
-import string
 import csv
 import random
 import os
@@ -54,6 +54,29 @@ def read_collection(answer_filepath):
   for doc in lst:
     result[int(doc['Id'])] = doc['Text']
   return result
+
+
+# Creates and saves the qrel files
+def create_qrel_files():
+    dic_topics = load_topic_file("topics_1.json")
+    queries = {}
+    for query_id in dic_topics:
+        queries[query_id] = "[TITLE]" + dic_topics[query_id][0] + "[BODY]" + dic_topics[query_id][1]
+
+    qrel = read_qrel_file("qrel_1.tsv")
+    collection_dic = read_collection('Answers.json')
+    train_dic_qrel, val_dic_qrel, test_dic_qrel = split_data(qrel)
+
+    with open('train_qrel.json', 'w') as f:
+        json.dump(train_dic_qrel, f)
+
+    with open('val_qrel.json', 'w') as f:
+        json.dump(val_dic_qrel, f)
+
+    with open('test_qrel.json', 'w') as f:
+        json.dump(test_dic_qrel, f)
+
+    print("QREL files created successfully.")
 
 
 # Uses the posts file, topic file(s) and qrel file(s) to build our training and evaluation sets.
@@ -130,21 +153,8 @@ def train(model):
     train_dic_qrel, val_dic_qrel, test_dic_qrel = split_data(
         qrel)  # created the test set, but it is never called in this file
 
-    with open('train_qrel.json',
-              'w') as f:  # will use these in CrossEncoder, so the models are trained and validated on the same set of topics
-        json.dump(train_dic_qrel, f)
-
-    with open('val_qrel.json',
-              'w') as f:  # will use these in CrossEncoder, so the models are trained and validated on the same set of topics
-        json.dump(val_dic_qrel, f)
-
-    with open('test_qrel.json',
-              'w') as f:  # saving this specific test set to use in Main.py, so each result file will be produced from the same test set topics
-        json.dump(test_dic_qrel, f)
-
     num_epochs = 50 # I overheard some people in class say this helped speed up their searches !
     batch_size = 16
-
     model_save_path ="./ft_bi_2024" # we don't need MODEL, that's just a string. This is similar to the process in CrossEncoder where we are saving the fine-tuned model to a folder in the current directory
 
     # Creating train and val dataset
@@ -163,7 +173,7 @@ def train(model):
         evaluator=evaluator,
         epochs=num_epochs,
         warmup_steps=warmup_steps,
-        use_amp=True,
+        use_amp=False, # setting to false so I can run the code bc something with the GPU
         output_path=model_save_path,
         save_best_model=True,
         show_progress_bar=True
