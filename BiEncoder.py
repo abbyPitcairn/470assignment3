@@ -173,7 +173,7 @@ def train(model):
         evaluator=evaluator,
         epochs=num_epochs,
         warmup_steps=warmup_steps,
-        use_amp=False, # setting to false so I can run the code bc something with the GPU
+        use_amp=True,
         output_path=model_save_path,
         save_best_model=True,
         show_progress_bar=True
