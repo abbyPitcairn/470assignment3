@@ -31,7 +31,7 @@ def main(answers, topics_1, topics_2):
     ft_bi_encoder_model = BiEncoder.train(SentenceTransformer('multi-qa-distilbert-cos-v1'))
     ft_cross_encoder_model = MyCrossEncoder.finetune(CrossEncoder('cross-encoder/stsb-distilroberta-base'), train_qrel, val_qrel)
 
-    start_time = time.time()
+    # start_time = time.time()
     queries_2 = {}
     if topics_2:
         dic_topics_2 = BiEncoder.load_topic_file(topics_2)
@@ -84,9 +84,9 @@ def main(answers, topics_1, topics_2):
     with open("result_ce_ft_2.tsv", "w") as file:
         file.write(result_ce_ft_2)
 
-    end_time = time.time()
-    search_time = end_time - start_time
-    print(f"Execution time: {search_time}")
+    # end_time = time.time()
+    # search_time = end_time - start_time
+    # print(f"Execution time: {search_time}")
 
 
 # Terminal Command: python3 Main.py Answers.json topics_1.json
