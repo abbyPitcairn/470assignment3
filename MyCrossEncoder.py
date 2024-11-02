@@ -18,6 +18,7 @@ def finetune(model, train_samples, valid_samples):
     # print("Cross encoder initialized.")
 
     # Adding special tokens
+    print("Starting fine-tuning process...")
     tokens = ["[TITLE]", "[BODY]"]
     model.tokenizer.add_tokens(tokens, special_tokens=True)
     model.model.resize_token_embeddings(len(model.tokenizer), mean_resizing=False)
@@ -40,7 +41,9 @@ def finetune(model, train_samples, valid_samples):
               output_path=model_save_path,
               save_best_model=True)
 
+    print("Fine-tuning completed. Saving model...")
     model.save(model_save_path)
+    print(f"Model saved to {model_save_path}.")
 
 
 def read_qrel_file(qrel_filepath):
@@ -69,17 +72,28 @@ def read_collection(answer_filepath):
   return result
 
 # load the training and validation sets created in BiEncoder
+print("Loading training QREL data...")
 train_qrel = json.load(open('train_qrel.json'))
-val_qrel =  json.load(open('val_qrel.json'))
+print(f"Loaded {len(train_qrel)} training queries.")
+
+print("Loading validation QREL data...")
+val_qrel = json.load(open('val_qrel.json'))
+print(f"Loaded {len(val_qrel)} validation queries.")
+
+print("Loading collection data...")
 collection_dic = read_collection('Answers.json')
+print(f"Loaded {len(collection_dic)} documents.")
 
 # prepare the queries
+print("Preparing queries...")
 dic_topics = BiEncoder.load_topic_file("topics_1.json")
 queries = {}
 for query_id in dic_topics:
     queries[query_id] = "[TITLE]" + dic_topics[query_id][0] + "[BODY]" + dic_topics[query_id][1]
+print(f"Prepared {len(queries)} queries.")
 
 def prepare_samples(train_qrel, val_qrel, queries, collection_dic):
+    print("Preparing training samples...")
     train_samples = []
     for qid, doc_id_relevance in train_qrel.items():
         topic_text = queries[qid]
@@ -87,7 +101,9 @@ def prepare_samples(train_qrel, val_qrel, queries, collection_dic):
             content = collection_dic[doc_id]
             label = 1 if score >= 1 else 0
             train_samples.append(InputExample(texts=[topic_text, content], label=label))
+    print(f"Created {len(train_samples)} training samples.")
 
+    print("Preparing validation samples...")
     valid_samples = {}
     for qid, doc_id_relevance in val_qrel.items():
         topic_text = queries[qid]
@@ -97,7 +113,7 @@ def prepare_samples(train_qrel, val_qrel, queries, collection_dic):
             content = collection_dic[doc_id]
             label = 'positive' if score >= 1 else 'negative'
             valid_samples[qid][label].add(content)
-
+    print(f"Created validation samples for {len(valid_samples)} queries.")
     return train_samples, valid_samples
 
 
