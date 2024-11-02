@@ -2,8 +2,6 @@
 # Version 31.10.2024
 
 import sys
-import time
-import os
 import json
 from sentence_transformers import SentenceTransformer, CrossEncoder
 import BiEncoder
@@ -12,115 +10,80 @@ import BiEncoder
 def create_qrel_files():
     BiEncoder.create_qrel_files()
 
-def main(answers, topics_1, topics_2):
-    print("Starting main...")
-
-    # Load each pretrained model
+def load_models():
     pretrained_bi_model = SentenceTransformer('multi-qa-distilbert-cos-v1')
     pretrained_cross_model = CrossEncoder('cross-encoder/stsb-distilroberta-base')
+    return pretrained_bi_model, pretrained_cross_model
 
-    # Load QREL files after creation
+def load_qrels():
     train_qrel = json.load(open('train_qrel.json'))
     val_qrel = json.load(open('val_qrel.json'))
-    collection_dic = BiEncoder.read_collection(answers)
+    return train_qrel, val_qrel
 
-    dic_topics_1 = BiEncoder.load_topic_file(topics_1)
-    queries_1 = {qid: "[TITLE]" + text[0] + "[BODY]" + text[1] for qid, text in dic_topics_1.items()}
+def load_queries(topics_file):
+    dic_topics = BiEncoder.load_topic_file(topics_file)
+    return {qid: "[TITLE]" + text[0] + "[BODY]" + text[1] for qid, text in dic_topics.items()}
 
-    # New objects for referencing the fine-tuned models
+def fine_tune_models(train_qrel, val_qrel):
     ft_bi_encoder_model = BiEncoder.train(SentenceTransformer('multi-qa-distilbert-cos-v1'))
     ft_cross_encoder_model = MyCrossEncoder.finetune(CrossEncoder('cross-encoder/stsb-distilroberta-base'), train_qrel, val_qrel)
+    return ft_bi_encoder_model, ft_cross_encoder_model
 
-    # start_time = time.time()
-    queries_2 = {}
-    if topics_2:
-        dic_topics_2 = BiEncoder.load_topic_file(topics_2)
-        queries_2 = {qid: "[TITLE]" + text[0] + "[BODY]" + text[1] for qid, text in dic_topics_2.items()}
+def run_bi_encoder_retrievals(model, test_qrel, collection_dic, output_prefix):
+    result = Retrievals.bi_retrieve(model, test_qrel, collection_dic)
+    with open(f"{output_prefix}.tsv", "w") as file:
+        file.write(result)
 
+def run_cross_encoder_retrievals(model, queries, collection_dic, result_prefix):
+    result = Retrievals.cross_retrieval(model, queries, collection_dic, f"{result_prefix}.tsv")
+    with open(f"{result_prefix}.tsv", "w") as file:
+        file.write(result)
+
+def main(answers, topics_1, topics_2):
+    print("Starting main...")
+    pretrained_bi_model, pretrained_cross_model = load_models()
+    train_qrel, val_qrel = load_qrels()
+    collection_dic = BiEncoder.read_collection(answers)
+
+    queries_1 = load_queries(topics_1)
+    queries_2 = load_queries(topics_2) if topics_2 else {}
+
+    ft_bi_encoder_model, ft_cross_encoder_model = fine_tune_models(train_qrel, val_qrel)
+
+    # Load test QRELs
     with open('test_qrel.json', 'r') as f:
         test_dic_qrel = json.load(f)
 
-    # Call retrieval methods and output result files
-    # 1. No fine-tuning on test set: bi-encoder
-    result_bi_1 = Retrievals.bi_retrieve(pretrained_bi_model, test_dic_qrel, collection_dic)
-    with open("result_bi_1.tsv", "w") as file:
-        file.write(result_bi_1)
-
-    # 2. No fine-tuning on topics_2 file: bi-encoder
+    # Perform retrievals
+    run_bi_encoder_retrievals(pretrained_bi_model, test_dic_qrel, collection_dic, "result_bi_1")
     if queries_2:
-        result_bi_2 = Retrievals.bi_retrieve(pretrained_bi_model, queries_2, collection_dic)
-        with open("result_bi_2.tsv", "w") as file:
-            file.write(result_bi_2)
+        run_bi_encoder_retrievals(pretrained_bi_model, queries_2, collection_dic, "result_bi_2")
 
-    # 3. Fine-tuning on test set: bi-encoder
-    result_bi_ft_1 = Retrievals.bi_retrieve(ft_bi_encoder_model, test_dic_qrel, collection_dic)
-    with open("result_bi_ft_1.tsv", "w") as file:
-        file.write(result_bi_ft_1)
-
-    # 4. Fine-tuning on topics_2 file: bi-encoder
+    run_bi_encoder_retrievals(ft_bi_encoder_model, test_dic_qrel, collection_dic, "result_bi_ft_1")
     if queries_2:
-        result_bi_ft_2 = Retrievals.bi_retrieve(ft_bi_encoder_model, queries_2, collection_dic)
-        with open("result_bi_ft_2.tsv", "w") as file:
-            file.write(result_bi_ft_2)
+        run_bi_encoder_retrievals(ft_bi_encoder_model, queries_2, collection_dic, "result_bi_ft_2")
 
-    # 5. No fine-tuning on test set: cross-encoder
-    result_ce_1 = Retrievals.cross_retrieval(pretrained_cross_model, test_dic_qrel, collection_dic, 'result_bi_1.tsv')
-    with open("result_ce_1.tsv", "w") as file:
-        file.write(result_ce_1)
-
-    # 6. No fine-tuning on topics_2 file: cross-encoder
+    run_cross_encoder_retrievals(pretrained_cross_model, test_dic_qrel, collection_dic, "result_ce_1")
     if queries_2:
-        result_ce_2 = Retrievals.cross_retrieval(pretrained_cross_model, queries_2, collection_dic, 'result_bi_2.tsv')
-        with open("result_ce_2.tsv", "w") as file:
-            file.write(result_ce_2)
+        run_cross_encoder_retrievals(pretrained_cross_model, queries_2, collection_dic, "result_ce_2")
 
-    # 7. Fine-tuning on test set: cross-encoder
-    result_ce_ft_1 = Retrievals.cross_retrieval(ft_cross_encoder_model, test_dic_qrel, collection_dic, 'result_bi_ft_1.tsv')
-    with open("result_ce_ft_1.tsv", "w") as file:
-        file.write(result_ce_ft_1)
-
-    # 8. Fine-tuning on topics_2 file: cross-encoder
-    result_ce_ft_2 = Retrievals.cross_retrieval(ft_cross_encoder_model, queries_2, collection_dic, 'result_bi_ft_2.tsv')
-    with open("result_ce_ft_2.tsv", "w") as file:
-        file.write(result_ce_ft_2)
-
-    # end_time = time.time()
-    # search_time = end_time - start_time
-    # print(f"Execution time: {search_time}")
-
+    run_cross_encoder_retrievals(ft_cross_encoder_model, test_dic_qrel, collection_dic, "result_ce_ft_1")
+    if queries_2:
+        run_cross_encoder_retrievals(ft_cross_encoder_model, queries_2, collection_dic, "result_ce_ft_2")
 
 # Terminal Command: python3 Main.py Answers.json topics_1.json
 # OR python3 Main.py Answers.json topics_2.json
 if __name__ == "__main__":
-    # Create QREL files before importing MyCrossEncoder
     create_qrel_files()
-
-    # Import MyCrossEncoder after QREL files are created
     import MyCrossEncoder
     import Retrievals
 
-    # Ensure three arguments are passed (answers.json, topics_1.json, topics_2.json)
     if len(sys.argv) != 4:
         print("Usage: python main.py <answers.json> <topics_1.json> <topics_2.json>")
         sys.exit(1)
 
-    # Get file paths from command line arguments
     answers_file = sys.argv[1]
     topics_1_file = sys.argv[2]
     topics_2_file = sys.argv[3]
 
-    # # Check if input files exist
-    # if not os.path.exists(answers_file):
-    #     print(f"Error: {answers_file} does not exist.")
-    #     sys.exit(1)
-    #
-    # if not os.path.exists(topics_1_file):
-    #     print(f"Error: {topics_1_file} does not exist.")
-    #     sys.exit(1)
-    #
-    # if not os.path.exists(topics_2_file):
-    #     print(f"Error: {topics_2_file} does not exist.")
-    #     sys.exit(1)
-
-    # Call the main function with the file paths
     main(answers_file, topics_1_file, topics_2_file)
