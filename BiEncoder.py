@@ -16,6 +16,7 @@ os.environ["WANDB_DISABLED"] = "true"
 
 # returns a dict mapping topic IDs to a nested dict of and IDs and their score
 def read_qrel_file(file_path):
+    print(f"Reading QREL file from {file_path}...")
     # Reading the qrel file
     dic_topic_id_answer_id_relevance = {}
     with open(file_path) as fd:
@@ -33,6 +34,7 @@ def read_qrel_file(file_path):
 
 # returns dict mapping IDs to their title, body, and tags
 def load_topic_file(topic_filepath):
+    print(f"Loading topic file from {topic_filepath}...")
     # a method used to read the topic file for this year of the lab;
     # to be passed to BERT/PyTerrier methods
     queries = json.load(open(topic_filepath))
@@ -48,12 +50,12 @@ def load_topic_file(topic_filepath):
 
 
 def read_collection(answer_filepath):
-  # Reading collection to a dictionary
-  lst = json.load(open(answer_filepath))
-  result = {}
-  for doc in lst:
-    result[int(doc['Id'])] = doc['Text']
-  return result
+    print(f"Reading collection from {answer_filepath}...")
+    lst = json.load(open(answer_filepath))
+    result = {}
+    for doc in lst:
+        result[int(doc['Id'])] = doc['Text']
+    return result
 
 
 # Creates and saves the qrel files
@@ -81,6 +83,8 @@ def create_qrel_files():
 
 # Uses the posts file, topic file(s) and qrel file(s) to build our training and evaluation sets.
 def process_data(queries, train_dic_qrel, val_dic_qrel, collection_dic):
+    print("Processing data...")
+    print(f"Training queries: {len(train_dic_qrel)}, Validation queries: {len(val_dic_qrel)}")
     train_samples = []
     evaluator_samples_1 = []
     evaluator_samples_2 = []
