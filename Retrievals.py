@@ -69,18 +69,12 @@ def embed(docs, model):
 # Queries: the topic file
 # Docs: the answers file
 # Calling bi_retrieve returns ordered results 
-def bi_retrieve(model, topic_filepath, docs_filepath):
+def bi_retrieve(model, queries, docs):
     # Retrieve documents relevant to queries using bi-encoder
     print("Starting bi-retrieve method...")
 
     # Initialize dictionary to store results
     result = {}
-
-    # Load queries and documents from provided file paths
-    with open(topic_filepath, 'r') as f:
-        queries = json.load(f)
-    with open(docs_filepath, 'r') as f:
-        docs = json.load(f)
 
     # Check if `docs` is a list of dictionaries; if not, print a warning
     if not isinstance(docs, list) or not all(isinstance(doc, dict) for doc in docs):
@@ -110,8 +104,8 @@ def bi_retrieve(model, topic_filepath, docs_filepath):
                 # Calculate similarity for query and document
                 simqd = model.similarity(query_embedding, embedded_doc)
                 similarities[doc_id] = simqd  # Store similarity with document ID
-
-    return {k: v for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True)}
+            result[query_id] = sorted(similarities.items(), key=lambda item: item[1], reverse=True)
+    return result
 
 
 """
@@ -130,41 +124,22 @@ Returns:
 def cross_retrieval(model, queries, docs, result_file, system_name="my_cross_encoder_model", top_k=100):
     reranked_results = []
 
-    # read from bi-encoder output file
-    with open(result_file, 'r') as file:
-        lines = file.readlines()
-
     input_pairs = [] # this will hold input pairs for the cross-encoder
 
-    # compute the embeddings
-    # embedded_docs = embed(docs, model)
-
-    for line in lines:
-        parts = line.strip().split()
-        if len(parts) < 4: # each line in the result file should have at least 4 parts (query id, q0, doc id, and rank)
-            continue # skipping if it doesn't = something is wrong with the way the file was written
-
-        topic_id = parts[0]
-        doc_id = parts[2]
-
+    for topic_id, doc_id in result_file:
         query_text = queries.get(topic_id, None)
         doc_text = docs.get(doc_id, None)
-        # doc_embedding = embedded_docs.get(doc_id, None)
 
         if query_text and doc_text:
             input_pairs.append((topic_id, doc_id, query_text, doc_text))
 
-        # if query_text and doc_embedding is not None:
-        #     input_pairs.append((topic_id, doc_id, query_text, doc_embedding))
-
     if input_pairs:
-        scores = model.predict([pair[2:] for pair in input_pairs]) # getting sim scores
+        scores = model.predict([pair[2:] for pair in input_pairs])
 
         reranked_results = [(input_pairs[i][0], input_pairs[i][1], scores[i]) for i in range(len(input_pairs))]
-#[(input_pairs[i][0], input_pairs[i][1], scores[i] for i in range(len(input_pairs)))] # combine scores w their query doc pair
 
-    reranked_results.sort(key=lambda x: x[2], reverse=True) # ranking in descending order
+    reranked_results.sort(key=lambda x: x[2], reverse=True)
 
-    with open("result_ce_file", "w") as output_file: # have to rename file after!!!!
-        for rank, (query_id, doc_id, score) in enumerate(reranked_results[:top_k], start=1): # technically top_k isn't needed bc the bi-encoder output file should only have 100 top results, doing just in case
+    with open("result_ce_file", "w") as output_file:
+        for rank, (query_id, doc_id, score) in enumerate(reranked_results[:top_k], start=1):
             output_file.write(f"{query_id} Q0 {doc_id} {rank} {score:.6f} {system_name}\n")

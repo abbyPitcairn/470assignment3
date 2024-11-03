@@ -29,15 +29,19 @@ def fine_tune_models(train_qrel, val_qrel):
     ft_cross_encoder_model = MyCrossEncoder.finetune(CrossEncoder('cross-encoder/stsb-distilroberta-base'), train_qrel, val_qrel)
     return ft_bi_encoder_model, ft_cross_encoder_model
 
-def run_bi_encoder_retrievals(model, test_qrel, collection_dic, output_prefix):
-    result = Retrievals.bi_retrieve(model, test_qrel, collection_dic)
+def run_bi_encoder_retrievals(model, queries, collection_dic, output_prefix):
+    result = Retrievals.bi_retrieve(model, queries, collection_dic)
     with open(f"{output_prefix}.tsv", "w") as file:
-        file.write(result)
+        for query_id, results in result.items():
+            for doc_id, score in results:
+                file.write(f"{query_id}\t{doc_id}\t{score}\n")
 
 def run_cross_encoder_retrievals(model, queries, collection_dic, result_prefix):
-    result = Retrievals.cross_retrieval(model, queries, collection_dic, f"{result_prefix}.tsv")
+    result_file_path = f"{result_prefix}_bi_results.tsv"
+    result = Retrievals.cross_retrieval(model, queries, collection_dic, result_file_path)
     with open(f"{result_prefix}.tsv", "w") as file:
-        file.write(result)
+        for query_id, doc_id, score in result:
+            file.write(f"{query_id}\t{doc_id}\t{score}\n")
 
 def main(answers, topics_1, topics_2):
     print("Starting main...")
