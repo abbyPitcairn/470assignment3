@@ -25,7 +25,7 @@ def finetune(model, train_samples, valid_samples):
     print("Tokenizer initialized")
 
     # this sets up the training
-    num_epochs = 100
+    num_epochs = 50
     model_save_path = "./ft_cr_2024"  # remember this for fine-tuning!!!
     train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=4)
     print("Dataloader loading training")
@@ -37,8 +37,10 @@ def finetune(model, train_samples, valid_samples):
               evaluator=evaluator,
               epochs=num_epochs,
               warmup_steps=warmup_steps,
+              use_amp = True,
               output_path=model_save_path,
-              save_best_model=True)
+              save_best_model=True,
+              show_progress_bar=True)
 
     print("Fine-tuning completed. Saving model...")
     model.save(model_save_path)
