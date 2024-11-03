@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 import BiEncoder
 
 # Change processing to GPU instead of CPU
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def finetune(model, train_samples, valid_samples):
     # model = CrossEncoder(model_name)
@@ -22,7 +22,6 @@ def finetune(model, train_samples, valid_samples):
     tokens = ["[TITLE]", "[BODY]"]
     model.tokenizer.add_tokens(tokens, special_tokens=True)
     model.model.resize_token_embeddings(len(model.tokenizer))
-    model.model.to(device)
     print("Tokenizer initialized")
 
     # this sets up the training

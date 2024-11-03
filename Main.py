@@ -3,6 +3,7 @@
 
 import sys
 import json
+import torch
 from sentence_transformers import SentenceTransformer, CrossEncoder
 import BiEncoder
 
@@ -26,7 +27,8 @@ def load_queries(topics_file):
 
 def fine_tune_models(train_qrel, val_qrel):
     ft_bi_encoder_model = BiEncoder.train(SentenceTransformer('multi-qa-distilbert-cos-v1'))
-    ft_cross_encoder_model = MyCrossEncoder.finetune(CrossEncoder('cross-encoder/stsb-distilroberta-base'), train_qrel, val_qrel)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ft_cross_encoder_model = MyCrossEncoder.finetune(CrossEncoder('cross-encoder/stsb-distilroberta-base'), train_qrel, val_qrel, device=device)
     return ft_bi_encoder_model, ft_cross_encoder_model
 
 def run_bi_encoder_retrievals(model, queries, collection_dic, output_prefix):
